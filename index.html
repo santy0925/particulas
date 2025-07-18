@@ -1,0 +1,274 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>Constelación Espacial</title>
+  <style>
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+    html, body {
+      width: 100%;
+      height: 100%;
+      overflow: hidden;
+      background: black;
+      cursor: default; /* MOUSE VISIBLE */
+    }
+    canvas {
+      display: block;
+    }
+  </style>
+</head>
+<body>
+  <canvas id="canvas"></canvas>
+  <script>
+    const canvas = document.getElementById('canvas');
+    const ctx = canvas.getContext('2d');
+    let width, height;
+    function resize() {
+      width = canvas.width = window.innerWidth;
+      height = canvas.height = window.innerHeight;
+    }
+    window.addEventListener('resize', resize);
+    resize();
+
+    let stars = [];
+    let shootingStars = [];
+    let explosions = [];
+    let mouse = { x: -1000, y: -1000 };
+
+    canvas.addEventListener('mousemove', (e) => {
+      mouse.x = e.clientX;
+      mouse.y = e.clientY;
+    });
+
+    class Star {
+      constructor(id) {
+        this.id = id;
+        this.reset();
+      }
+
+      reset() {
+        this.x = Math.random() * width * 1.5 - width * 0.25;
+        this.y = Math.random() * height * 1.5 - height * 0.25;
+        this.radius = Math.random() * 2.2 + 0.3; // MÁS VARIACIÓN EN TAMAÑO
+        this.brightness = Math.random();
+        this.twinkleSpeed = Math.random() * 0.01 + 0.005;
+        this.brightnessBoost = 0;
+        this.vx = (Math.random() - 0.5) * 0.05;
+        this.vy = (Math.random() - 0.5) * 0.05;
+        this.constellation = null;
+      }
+
+      update() {
+        this.brightness += this.twinkleSpeed;
+        if (this.brightness > 1 || this.brightness < 0) {
+          this.twinkleSpeed *= -1;
+        }
+
+        let dx = this.x - mouse.x;
+        let dy = this.y - mouse.y;
+        let dist = Math.sqrt(dx * dx + dy * dy);
+        if (dist < 100) {
+          const force = (100 - dist) / 100 * 0.5;
+          this.x -= dx / dist * force;
+          this.y -= dy / dist * force;
+        }
+
+        this.x += this.vx;
+        this.y += this.vy;
+
+        if (this.x < -50 || this.x > width + 50 || this.y < -50 || this.y > height + 50) {
+          this.reset();
+        }
+
+        if (this.brightnessBoost > 0) {
+          this.brightnessBoost -= 0.005;
+          if (this.brightnessBoost < 0) this.brightnessBoost = 0;
+        }
+
+        if (this.constellation) {
+          if (this.constellation.phase === 'appearing') {
+            this.constellation.opacity += 0.02;
+            if (this.constellation.opacity >= 1) {
+              this.constellation.opacity = 1;
+              this.constellation.phase = 'disappearing';
+            }
+          } else if (this.constellation.phase === 'disappearing') {
+            this.constellation.opacity -= 0.005;
+            if (this.constellation.opacity <= 0) {
+              this.constellation = null;
+            }
+          }
+        }
+      }
+
+      draw(ctx) {
+        ctx.beginPath();
+        ctx.arc(this.x, this.y, this.radius, 0, Math.PI * 2);
+        const glow = Math.min(1, this.brightness + this.brightnessBoost);
+        ctx.fillStyle = `rgba(255, 255, 255, ${glow})`;
+        ctx.shadowColor = 'white';
+        ctx.shadowBlur = 8;
+        ctx.fill();
+
+        if (this.constellation) {
+          ctx.save();
+          ctx.strokeStyle = `rgba(255, 255, 255, ${this.constellation.opacity})`;
+          ctx.lineWidth = 0.3;
+          ctx.beginPath();
+          for (let s of this.constellation.links) {
+            ctx.moveTo(this.x, this.y);
+            ctx.lineTo(s.x, s.y);
+          }
+          ctx.stroke();
+          ctx.restore();
+        }
+      }
+
+      formConstellation(allStars) {
+        let links = [];
+        for (let star of allStars) {
+          if (star.id !== this.id) {
+            const dx = this.x - star.x;
+            const dy = this.y - star.y;
+            const distance = Math.sqrt(dx * dx + dy * dy);
+            if (distance < 200) {
+              links.push(star);
+              if (links.length >= 6) break;
+            }
+          }
+        }
+
+        this.constellation = {
+          links: links,
+          opacity: 0,
+          phase: 'appearing'
+        };
+      }
+    }
+
+    class ShootingStar {
+      constructor() {
+        this.reset();
+      }
+
+      reset() {
+        const side = Math.floor(Math.random() * 4);
+        if (side === 0) { this.x = 0; this.y = Math.random() * height; this.vx = 6; this.vy = (Math.random() - 0.5) * 2; }
+        if (side === 1) { this.x = width; this.y = Math.random() * height; this.vx = -6; this.vy = (Math.random() - 0.5) * 2; }
+        if (side === 2) { this.x = Math.random() * width; this.y = 0; this.vx = (Math.random() - 0.5) * 2; this.vy = 6; }
+        if (side === 3) { this.x = Math.random() * width; this.y = height; this.vx = (Math.random() - 0.5) * 2; this.vy = -6; }
+        this.length = 150;
+      }
+
+      update() {
+        this.x += this.vx;
+        this.y += this.vy;
+        if (this.x < -this.length || this.x > width + this.length || this.y < -this.length || this.y > height + this.length) {
+          this.reset();
+        }
+      }
+
+      draw(ctx) {
+        ctx.strokeStyle = 'white';
+        ctx.lineWidth = 1;
+        ctx.beginPath();
+        ctx.moveTo(this.x, this.y);
+        ctx.lineTo(this.x - this.vx * 10, this.y - this.vy * 10);
+        ctx.stroke();
+      }
+    }
+
+    class Explosion {
+      constructor() {
+        this.x = Math.random() * width;
+        this.y = Math.random() * height;
+        this.radius = 0;
+        this.maxRadius = Math.random() * 10 + 5;
+        this.alpha = 1;
+      }
+
+      update() {
+        this.radius += 0.4;
+        this.alpha = 1 - (this.radius / this.maxRadius);
+        if (this.alpha < 0) this.alpha = 0;
+      }
+
+      draw(ctx) {
+        ctx.save();
+        ctx.beginPath();
+        ctx.arc(this.x, this.y, this.radius, 0, Math.PI * 2);
+        ctx.fillStyle = `rgba(255,255,255,${this.alpha})`;
+        ctx.shadowBlur = 10;
+        ctx.shadowColor = 'white';
+        ctx.fill();
+        ctx.restore();
+      }
+
+      isDone() {
+        return this.alpha <= 0;
+      }
+    }
+
+    for (let i = 0; i < 500; i++) {
+      stars.push(new Star(i));
+    }
+
+    for (let i = 0; i < 4; i++) {
+      shootingStars.push(new ShootingStar());
+    }
+
+    function blinkNearbyStars(x, y) {
+      for (let star of stars) {
+        let dx = star.x - x;
+        let dy = star.y - y;
+        let dist = Math.sqrt(dx * dx + dy * dy);
+        if (dist < 100) {
+          star.brightnessBoost = 1.2;
+        }
+      }
+    }
+
+    canvas.addEventListener('click', (e) => {
+      let nearest = null;
+      let minDist = 9999;
+      for (let star of stars) {
+        let dx = star.x - e.clientX;
+        let dy = star.y - e.clientY;
+        let dist = Math.sqrt(dx * dx + dy * dy);
+        if (dist < minDist) {
+          minDist = dist;
+          nearest = star;
+        }
+      }
+      if (nearest) nearest.formConstellation(stars);
+      blinkNearbyStars(e.clientX, e.clientY);
+    });
+
+    function animate() {
+      ctx.clearRect(0, 0, width, height);
+      if (Math.random() < 0.02) explosions.push(new Explosion());
+
+      for (let e of explosions) {
+        e.update();
+        e.draw(ctx);
+      }
+      explosions = explosions.filter(e => !e.isDone());
+
+      for (let star of stars) {
+        star.update();
+        star.draw(ctx);
+      }
+
+      for (let s of shootingStars) {
+        s.update();
+        s.draw(ctx);
+      }
+
+      requestAnimationFrame(animate);
+    }
+
+    animate();
+  </script>
+</body>
+</html>

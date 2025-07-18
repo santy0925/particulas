@@ -1,0 +1,81 @@
+body {
+  margin: 0;
+  overflow: hidden;
+  background: black;
+}
+
+canvas#stars {
+  position: absolute;
+  width: 100%;
+  height: 100%;
+  z-index: 0;
+}
+
+.quasar {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  width: 300px;
+  height: 300px;
+  z-index: 1;
+}
+
+.event-horizon {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  width: 100px;
+  height: 100px;
+  background: radial-gradient(circle, #000 30%, #111 70%);
+  border-radius: 50%;
+  transform: translate(-50%, -50%);
+  box-shadow: 0 0 60px 20px rgba(0, 0, 0, 0.9);
+  z-index: 3;
+}
+
+.accretion-disk {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  width: 280px;
+  height: 280px;
+  background: conic-gradient(
+    from 0deg,
+    rgba(255, 204, 0, 0.9),
+    rgba(255, 80, 0, 0.9),
+    rgba(150, 0, 0, 0.9),
+    rgba(255, 204, 0, 0.9)
+  );
+  border-radius: 50%;
+  transform: translate(-50%, -50%) rotate(0deg);
+  animation: spin 6s linear infinite;
+  filter: blur(2px) brightness(1.5);
+  z-index: 2;
+}
+
+.jet {
+  position: absolute;
+  left: 50%;
+  width: 20px;
+  height: 200px;
+  background: linear-gradient(to top, rgba(0, 255, 255, 0.8), transparent);
+  transform: translateX(-50%);
+  filter: blur(1px);
+  z-index: 0;
+}
+
+.jet.bottom {
+  top: 100%;
+  transform: translate(-50%, 0) rotate(180deg);
+}
+
+.jet.top {
+  bottom: 100%;
+  transform: translate(-50%, 0);
+}
+
+@keyframes spin {
+  0%   { transform: translate(-50%, -50%) rotate(0deg); }
+  100% { transform: translate(-50%, -50%) rotate(360deg); }
+}
